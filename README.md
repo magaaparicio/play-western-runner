@@ -1,4 +1,4 @@
-# 🐎 Western Runner
+# Western Runner
 
 **Un videojuego arcade 2D desarrollado con inteligencia artificial.**
 
@@ -6,7 +6,7 @@ Western Runner es un juego interactivo inspirado en el Viejo Oeste, donde un vaq
 
 El proyecto explora cómo la inteligencia artificial puede utilizarse para diseñar, desarrollar y lanzar experiencias digitales interactivas sin recurrir a motores de videojuegos tradicionales.
 
-## 🎮 Cómo jugar
+## Cómo jugar
 
 - **60 segundos:** consigue tantos puntos como puedas antes de que termine el tiempo.
 - **Modo sin fin:** sobrevive el mayor tiempo posible.
@@ -17,7 +17,7 @@ El proyecto explora cómo la inteligencia artificial puede utilizarse para dise�
 
 Compatible con dispositivos móviles y computadoras.
 
-## 🛠️ Tecnologías
+## Tecnologías
 
 - HTML5
 - CSS3
@@ -28,7 +28,7 @@ Compatible con dispositivos móviles y computadoras.
 
 El juego funciona directamente en el navegador, sin instalaciones ni frameworks.
 
-## 💡 Sobre el proyecto
+## Sobre el proyecto
 
 Western Runner nació como un experimento para explorar la creación de experiencias interactivas mediante IA.
 
@@ -36,6 +36,6 @@ Más allá del videojuego, el objetivo es experimentar con formatos que puedan a
 
 **Concepto, dirección creativa y desarrollo asistido por IA: Maga Aparicio.**
 
-## 🚀 Juega aquí
+## Juega aquí
 
-[**Jugar Western Runner**](https://magaaparicio.github.io/western-runner/)
+[**Jugar Western Runner**](https://magaaparicio.github.io/play-western-runner/)
