@@ -15,7 +15,7 @@
   sound.enabled = store.data.sound !== false;
   sound.musicEnabled = store.data.music !== false;
   var jumpMode = store.data.jumpMode || cfg.input.jumpMode || 'tap';
-  var daily = false, endless = false;
+  var daily = false, endless = true;
 
   var renderer = new WR.Renderer(canvas, cfg);
   var world = new WR.World(cfg, { viewW: renderer.view.W, horseX: renderer.horseX });
@@ -138,11 +138,9 @@
   function refreshRecord() {
     var has = store.data.best > 0 || store.data.bestEndless > 0;
     $('record').hidden = !has;
-    $('record-endless').hidden = !(store.data.bestEndless > 0);
-    $('record-endless').textContent = 'SIN FIN: ' + fmtNum(store.data.bestEndless || 0);
-    $('record-value').textContent = fmtNum(store.data.best);
-    var dd = store.data.daily;
-    $('btn-daily').textContent = dd && dd.date === WR.World.dailySeed() && dd.best > 0 ? 'RETO DEL DÍA: ' + fmtNum(dd.best) : 'RETO DEL DÍA';
+    $('record-endless').hidden = true;
+    $('record-value').textContent = fmtNum(store.data.bestEndless || 0);
+
   }
 
   function toMenu() {
@@ -224,7 +222,7 @@
     }
     store.save();
     lastResult = { score: score, daily: daily, endless: endless, time: world.t, streak: world.stats.bestStreak };
-    $('over-mode').hidden = !daily && !endless;
+    $('over-mode').hidden = true;
     $('over-mode').textContent = endless ? 'MODO SIN FIN' : 'RETO DEL DÍA';
     $('over-streak').textContent = world.stats.bestStreak >= cfg.streak.showFrom ? 'Mejor racha: ' + world.stats.bestStreak + ' cartas seguidas' : '';
     $('final-score').textContent = fmtNum(score);
@@ -314,11 +312,9 @@
   function on(id, fn) {
     $(id).addEventListener('click', function (e) { sound.unlock(); fn(e); });
   }
-  on('btn-play', function () { play({ daily: false, endless: false }); });
-  on('btn-daily', function () { play({ daily: true, endless: false }); });
-  on('btn-endless', function () { play({ daily: false, endless: true }); });
+  on('btn-play', function () { play({ daily: false, endless: true }); });
   on('btn-how', function () { mode = 'how'; show('how'); });
-  on('btn-how-play', function () { play({ daily: false, endless: false }); });
+  on('btn-how-play', function () { play({ daily: false, endless: true }); });
   on('btn-music-menu', toggleMusic);
   on('btn-music-pause', toggleMusic);
   on('btn-jump-how', toggleJump);
