@@ -15,7 +15,7 @@
   sound.enabled = store.data.sound !== false;
   sound.musicEnabled = store.data.music !== false;
   var jumpMode = store.data.jumpMode || cfg.input.jumpMode || 'tap';
-  var daily = false, endless = true;
+  var daily = false, endless = true;  // el juego es siempre sin fin
 
   var renderer = new WR.Renderer(canvas, cfg);
   var world = new WR.World(cfg, { viewW: renderer.view.W, horseX: renderer.horseX });
@@ -29,7 +29,7 @@
   var HEART = '<svg class="heart" viewBox="0 0 32 30" aria-hidden="true"><path class="fill" d="M16 28S2.5 19.6 2.5 10.2C2.5 5.6 6 2.5 9.8 2.5c2.8 0 4.9 1.6 6.2 3.6 1.3-2 3.4-3.6 6.2-3.6 3.8 0 7.3 3.1 7.3 7.7C29.5 19.6 16 28 16 28z" stroke="#3B2314" stroke-width="2.6" stroke-linejoin="round"/><path d="M8 7.5c-1.6.6-2.6 2-2.6 3.8" stroke="rgba(255,255,255,.75)" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
   var heartsEl = $('hearts'), hearts = [];
   function buildHearts(img) {
-    var one = img ? '<img class="heart heart-img" src="' + WR.ASSET_FILES['ui-heart'] + '" alt="">' : HEART;
+    var one = HEART;
     heartsEl.innerHTML = new Array(cfg.lives + 1).join(one);
     hearts = heartsEl.querySelectorAll('.heart');
   }
@@ -136,11 +136,9 @@
   }
 
   function refreshRecord() {
-    var has = store.data.best > 0 || store.data.bestEndless > 0;
-    $('record').hidden = !has;
-    $('record-endless').hidden = true;
-    $('record-value').textContent = fmtNum(store.data.bestEndless || 0);
-
+    var best = store.data.bestEndless || 0;
+    $('record').hidden = !(best > 0);
+    $('record-value').textContent = fmtNum(best);
   }
 
   function toMenu() {
@@ -223,7 +221,6 @@
     store.save();
     lastResult = { score: score, daily: daily, endless: endless, time: world.t, streak: world.stats.bestStreak };
     $('over-mode').hidden = true;
-    $('over-mode').textContent = endless ? 'MODO SIN FIN' : 'RETO DEL DÍA';
     $('over-streak').textContent = world.stats.bestStreak >= cfg.streak.showFrom ? 'Mejor racha: ' + world.stats.bestStreak + ' cartas seguidas' : '';
     $('final-score').textContent = fmtNum(score);
     $('final-best').textContent = fmtNum(store.data[key]);

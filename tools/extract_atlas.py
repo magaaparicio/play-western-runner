@@ -1,143 +1,237 @@
 #!/usr/bin/env python3
 """
-Recorta el atlas de sprites en PNG individuales con transparencia real.
+Recorta la lámina de arte (RGBA con transparencia real) en PNG individuales.
 
-    python3 tools/extract_atlas.py ruta/al/atlas.png
+    python3 tools/extract_atlas.py art/atlas.png
 
-El atlas trae el cuadriculado de "transparencia" pintado en la imagen (RGB sin alfa).
-Se elimina así: un píxel es fondo si es gris claro casi neutro; se borran las zonas de
-fondo conectadas al borde de cada recorte y los huecos interiores que contienen el patrón
-de dos tonos del cuadriculado. Después se limpia un borde de 1 px para evitar halos.
-Si el atlas cambia de distribución, ajusta las cajas de BOXES.
+La lámina ya trae canal alfa, así que no hace falta quitar fondos. Cada sprite es una
+pieza conectada (alfa > 40); los restos pequeños se pegan a la pieza grande más cercana
+(cabellos, bordes del pañuelo). Las piezas se identifican por fila y orden de izquierda
+a derecha. Si la lámina cambia de distribución, ajusta ROWS y NAMES.
+
+Además calcula la caja de apoyo del caballo (js/assets.js) y, con --upscale, entrega
+cada sprite al doble de resolución (Lanczos + nitidez suave) para que el navegador
+escale menos y se vea más limpio.
 """
+import json
 import sys
 from pathlib import Path
+
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets"
+THR = 40          # umbral de alfa para considerar un píxel como parte de un sprite
+BIG = 1200        # área mínima de una pieza "grande"
+ATTACH = 10       # distancia máxima (px) para pegar un resto pequeño a una pieza grande
 
-# nombre: (x0, y0, x1, y1) en el atlas de 1536 × 1024
-GALLOP_X = [4, 170, 332, 492, 652, 822, 990, 1166, 1346, 1532]
-BOXES = {f"horse-run-{i}": (GALLOP_X[i], 40, GALLOP_X[i + 1], 183) for i in range(9)}
-BOXES.update({
-    "horse-jump": (14, 226, 262, 420),
-    "horse-land": (272, 232, 518, 420),
-    "horse-hurt": (522, 210, 752, 428),
-    "card-0": (852, 220, 940, 331), "card-1": (958, 218, 1045, 330),
-    "card-2": (1069, 220, 1158, 330), "card-3": (1183, 219, 1275, 331),
-    "hat": (1302, 214, 1465, 341),
-    "obs-barrel": (812, 372, 920, 492), "obs-fence": (924, 376, 1075, 490),
-    "obs-rock": (1075, 388, 1218, 492), "obs-crate": (1219, 375, 1356, 490),
-    "obs-hay": (1358, 384, 1532, 493),
-    "bg-sky": (13, 480, 799, 554),
-    "bg-far": (15, 596, 796, 663),
-    "bg-near": (15, 676, 803, 782),
-    "bg-cactus": (15, 796, 802, 897),
-    "bg-road": (15, 949, 802, 992),
-    "ui-logo": (836, 552, 1191, 694),
-    "ui-button": (1213, 570, 1516, 665),
-    "ui-score": (867, 742, 1044, 818),
-    "ui-timer": (1126, 742, 1316, 818),
-    "ui-parchment": (832, 864, 1104, 976),
-    "ui-heart": (1132, 876, 1234, 969),
-    "ui-pause": (1265, 870, 1375, 973),
-})
-# zonas con etiquetas de texto que hay que borrar dentro de un recorte (coordenadas del atlas)
-LABELS = [(10, 192, 90, 226), (276, 190, 384, 226), (558, 192, 632, 226), (10, 788, 286, 826), (10, 440, 216, 474), (10, 565, 312, 593), (10, 670, 326, 700), (10, 905, 290, 936)]
-OPAQUE = {"bg-sky", "bg-road"}  # capas que deben ser totalmente opacas
+# (y_min, y_max) de cada fila de la lámina y los nombres, de izquierda a derecha.
+# None = pieza que no se usa.
+ROWS = [
+    ((0, 200), [None] * 11),   # el galope viene de art/horse/ (cuadros nuevos, más nítidos)
+    ((200, 440), ["jump-takeoff", "horse-jump", "horse-land", "jump-landing",
+                  "horse-hurt", "fall-1", "fall-2", "fall-3"]),
+    ((440, 632), ["obs-cactus", "obs-crate", "obs-barrel", "obs-hay",
+                  "obs-rock", "obs-fence", "obs-wheel", "obs-tumble"]),
+    ((632, 776), [None, None, None, None, None, "card-0", "card-1", "card-2", "card-3",
+                  "hat-cream", "hat", "hat-black"]),
+]
+# Piezas grandes de la fila 4 en orden: agave+arbusto, cactus pequeño, roca+árbol seco,
+# letrero, cráneo, 4 cartas, 3 sombreros. Solo se usan cartas y sombreros.
 
-
-def is_bg(a):
-    mx, mn = a.max(2), a.min(2)
-    return (mx - mn <= 14) & (mn >= 186)
-
-
-def cut(atlas, name, box):
-    x0, y0, x1, y1 = box
-    a = atlas[y0:y1, x0:x1].astype(int)
-    alpha = np.full(a.shape[:2], 255, np.uint8)
-    for lx0, ly0, lx1, ly1 in LABELS:  # etiquetas → fuera
-        ix0, iy0, ix1, iy1 = max(lx0, x0) - x0, max(ly0, y0) - y0, min(lx1, x1) - x0, min(ly1, y1) - y0
-        if ix1 > ix0 and iy1 > iy0:
-            alpha[iy0:iy1, ix0:ix1] = 0
-    if name not in OPAQUE:
-        bg = is_bg(a)
-        lab, n = ndimage.label(bg)
-        border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
-        kill = np.isin(lab, list(border))
-        # huecos interiores con patrón de cuadriculado (dos tonos de gris)
-        mn = a.min(2)
-        for i in range(1, n + 1):
-            if i in border:
-                continue
-            m = lab == i
-            if m.sum() < 25:
-                continue
-            vals = mn[m]
-            if (vals < 226).mean() > 0.2 and (vals > 234).mean() > 0.2:
-                kill |= m
-        alpha[kill] = 0
-        # borde de 1 px: quita restos claros neutros pegados al fondo
-        ring = ndimage.binary_dilation(alpha == 0) & (alpha > 0)
-        mx = a.max(2)
-        light = (mx - a.min(2) <= 30) & (a.min(2) >= 160)
-        alpha[ring & light] = 0
-        ring2 = ndimage.binary_dilation(alpha == 0) & (alpha > 0)
-        alpha[ring2] = (alpha[ring2] * 0.6).astype(np.uint8)
-    if name == "hat":
-        # el brillo pintado está mezclado con el cuadriculado: se descarta (el juego dibuja el suyo)
-        alpha[a.min(2) >= 150] = 0
-    if name not in OPAQUE and not name.startswith("bg-"):
-        # conservar solo piezas grandes (quita restos de sprites vecinos)
-        lab, n = ndimage.label(alpha > 0)
-        if n > 1:
-            sizes = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
-            keep = [i + 1 for i, v in enumerate(sizes) if v >= max(sizes) * 0.02]
-            alpha[~np.isin(lab, keep)] = 0
-    rgba = np.dstack([a.astype(np.uint8), alpha])
-    img = Image.fromarray(rgba, "RGBA")
-    bb = img.getchannel("A").getbbox()
-    if bb and name not in OPAQUE:
-        img = img.crop(bb)
-    img.save(OUT / f"{name}.png", optimize=True)
-    return img.size
-
-
-def horse_meta(img):
-    """Caja del caballo + jinete (píxeles oscuros, sin polvo) para alinear cuadros."""
-    a = np.asarray(img).astype(int)
-    lum = a[..., 0] * 0.3 + a[..., 1] * 0.59 + a[..., 2] * 0.11
-    dark = (a[..., 3] > 0) & (lum < 125)
-    dark = ndimage.binary_closing(dark, iterations=3)
-    lab, n = ndimage.label(dark)
-    sizes = ndimage.sum(dark, lab, range(1, n + 1))
-    big = lab == (int(np.argmax(sizes)) + 1)
-    ys, xs = np.nonzero(big)
-    return {"x0": int(xs.min()), "x1": int(xs.max()), "y0": int(ys.min()), "y1": int(ys.max()), "w": img.width, "h": img.height}
+MAIN_SIZE = {"horse": 1, "obs": 1}
 
 
 def main():
-    src = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "art" / "atlas.png"
-    atlas = np.asarray(Image.open(src).convert("RGB"))
+    src = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else ROOT / "art" / "atlas.png"
+    upscale = "--upscale" in sys.argv
+    rgba = np.asarray(Image.open(src).convert("RGBA"))
+    alpha = rgba[..., 3]
+    lab, n = ndimage.label(alpha > THR)
+    objs = ndimage.find_objects(lab)
+    areas = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+    big = [i + 1 for i in range(n) if areas[i] >= BIG]
+    # asignar restos pequeños a la pieza grande más cercana
+    owner = {i: i for i in big}
+    for i in range(1, n + 1):
+        if i in owner:
+            continue
+        s = objs[i - 1]
+        best, bd = None, 1e9
+        for j in big:
+            t = objs[j - 1]
+            dx = max(t[1].start - s[1].stop, s[1].start - t[1].stop, 0)
+            dy = max(t[0].start - s[0].stop, s[0].start - t[0].stop, 0)
+            d = max(dx, dy)
+            if d < bd:
+                best, bd = j, d
+        if best is not None and bd <= ATTACH:
+            owner[i] = best
     OUT.mkdir(exist_ok=True)
-    meta = {}
-    for name, box in BOXES.items():
-        size = cut(atlas, name, box)
-        print(f"{name:16s} {size}")
-        if name.startswith("horse-"):
-            meta[name] = horse_meta(Image.open(OUT / f"{name}.png").convert("RGBA"))
-    import json
-    (OUT / "horse-meta.json").write_text(json.dumps(meta, indent=1))
-    # Manifiesto para el juego: rutas + cajas de alineación del caballo
-    files = {n: f"assets/{n}.png" for n in BOXES}
+    meta, files = {}, {}
+    for (y0, y1), names in ROWS:
+        row = sorted([j for j in big if y0 <= (objs[j - 1][0].start + objs[j - 1][0].stop) / 2 < y1],
+                     key=lambda j: objs[j - 1][1].start)
+        # En la fila de salto hay rocas y polvo sueltos: se descartan por estar debajo del caballo
+        if names[0] == "jump-takeoff":
+            row = [j for j in row if objs[j - 1][0].stop - objs[j - 1][0].start >= 100]
+        if len(row) != len(names):
+            raise SystemExit(f"Fila {y0}-{y1}: se esperaban {len(names)} piezas y hay {len(row)}")
+        for name, j in zip(names, row):
+            if not name:
+                continue
+            members = [i for i, o in owner.items() if o == j]
+            mask = np.isin(lab, members)
+            ys, xs = np.nonzero(mask)
+            x0, x1, yy0, yy1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+            crop = rgba[yy0:yy1, x0:x1].copy()
+            crop[..., 3] = np.where(mask[yy0:yy1, x0:x1], crop[..., 3], 0)
+            img = Image.fromarray(crop, "RGBA")
+            if name.startswith("horse-"):
+                meta[name] = horse_meta(img)
+            if upscale:
+                img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
+                img = img.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
+                if name in meta:  # la caja de apoyo también se duplica
+                    meta[name] = {k: v * 2 for k, v in meta[name].items()}
+            img.save(OUT / f"{name}.png", optimize=True)
+            print(f"{name:14s} {img.size}")
+    # Galope: cuadros sueltos de art/horse/f01..f12.png (transparentes; traen número y restos vecinos)
+    # Se usan f01..f08: tienen la misma proporción jinete/patas. f09..f12 están dibujados a otra
+    # escala (jinete más bajo respecto a las patas) y al mezclarlos el caballo "salta" entre cuadros.
+    frames = [clean_frame(Image.open(f).convert("RGBA")) for f in sorted((ROOT / "art" / "horse").glob("f0[1-8].png"))]
+    frames = repair_muzzles(frames)
+    # Los cuadros no vienen exactamente a la misma escala: se igualan por área visible
+    areas = [float((np.asarray(im)[..., 3] > 128).sum()) for im in frames]
+    target = float(np.median(areas))
+    for k, im in enumerate(frames):
+        name = f"horse-run-{k}"
+        f = (target / areas[k]) ** 0.5
+        if abs(f - 1) > 0.01:
+            im = im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
+        im.save(OUT / f"{name}.png", optimize=True)
+        meta[name] = horse_meta(im)
+        # Ancla horizontal: centro de los jeans (estable), no el centro de la caja (cambia con la cola)
+        a = np.asarray(im).astype(int)
+        jeans = (a[..., 3] > 128) & (a[..., 2] > a[..., 0] + 25) & (a[..., 2] > 90) & (a[..., 1] > 60)
+        jx = int(np.nonzero(jeans)[1].mean())
+        meta[name]["x0"] = meta[name]["x1"] = jx
+        print(f"{name:14s} {im.size}  escala {f:.3f}")
+    # Archivos de interfaz que se conservan fuera de la lámina
+    for f in sorted(OUT.glob("*.png")):
+        files[f.stem] = f"assets/{f.name}"
+    for stale in ("bg-sky", "bg-far", "bg-near", "bg-cactus", "bg-road", "ui-logo", "ui-button",
+                  "ui-score", "ui-timer", "ui-parchment", "ui-heart", "ui-pause"):
+        files.pop(stale, None)
+    for k in list(files):
+        if k.startswith(("jump-", "fall-", "hat-", "obs-wheel", "obs-tumble", "obs-cactus")):
+            files.pop(k)
     js = ("/* Generado por tools/extract_atlas.py: no editar a mano. */\n"
           "window.WR = window.WR || {};\n"
           "WR.ASSET_FILES = " + json.dumps(files, indent=1) + ";\n"
-          "WR.HORSE_META = " + json.dumps(meta) + ";\n")
+          "WR.HORSE_META = " + json.dumps(meta) + ";\n"
+          "WR.ASSET_SCALE = " + ("2" if upscale else "1") + ";\n")
     (ROOT / "js" / "assets.js").write_text(js, encoding="utf-8")
+    (OUT / "horse-meta.json").write_text(json.dumps(meta, indent=1))
+
+
+def clean_frame(img):
+    """Se queda con caballo + jinete: la pieza mayor y sus restos pegados (pañuelo, crin).
+    Quita el número del cuadro y los pedazos de cuadros vecinos."""
+    a = np.asarray(img)
+    lab, n = ndimage.label(a[..., 3] > THR)
+    areas = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+    main = int(np.argmax(areas)) + 1
+    near = ndimage.binary_dilation(lab == main, iterations=5)  # restos pegados (pañuelo, crin)
+    keep = set(np.unique(lab[near])) - {0}
+    mask = np.isin(lab, list(keep))
+    out = a.copy()
+    out[..., 3] = np.where(mask, out[..., 3], 0)
+    im = Image.fromarray(out, "RGBA")
+    return im.crop(im.getchannel("A").getbbox())
+
+
+STRIP = 60  # columnas del borde derecho que se comparan para calzar la cabeza
+
+
+def _edge(a):
+    return int((a[..., 3] > 128)[:, -1].sum())
+
+
+def _match(cut, donor):
+    """Busca en qué desplazamiento la cabeza completa (donante) calza con la cortada."""
+    h, w = cut.shape[:2]
+    H, W = donor.shape[:2]
+    T = cut[:, w - STRIP:]
+    best = (1e18, None)
+    for dy in range(-30, 31):
+        for dx in range(-40, 41):
+            x0 = W - STRIP - 12 + dx
+            if x0 < 0 or x0 + STRIP > W:
+                continue
+            y0, y1 = max(0, -dy), min(h, H - dy)
+            Tt = T[y0:y1]
+            Dd = donor[y0 + dy:y1 + dy, x0:x0 + STRIP]
+            tm, dm = Tt[..., 3] > 128, Dd[..., 3] > 128
+            both = tm & dm
+            if both.sum() < 0.55 * tm.sum():
+                continue
+            diff = np.abs(Tt[..., :3] - Dd[..., :3]).mean(2)[both].mean()
+            xor = ((tm != dm)[:, :STRIP - 8]).mean() * 300  # el borde cortado no cuenta
+            if diff + xor < best[0]:
+                best = (diff + xor, (dy, x0))
+    return best
+
+
+def repair_muzzles(frames):
+    """Algunos cuadros vienen con el hocico cortado en el borde. Se toma la cabeza completa de
+    un cuadro intacto, se calza sobre la cortada y se pega lo que falta (con mezcla en la unión)."""
+    arr = [np.asarray(f).astype(float) for f in frames]
+    intact = [i for i, a in enumerate(arr) if _edge(a) <= 15]
+    out = []
+    for k, cut in enumerate(arr):
+        if k in intact or not intact:
+            out.append(frames[k])
+            continue
+        sc, d = min((_match(cut, arr[d])[0], d) for d in intact), None
+        sc, d = sc
+        _, (dy, x0) = _match(cut, arr[d])
+        don = arr[d]
+        h, w = cut.shape[:2]
+        H, W = don.shape[:2]
+        extra = W - (x0 + STRIP)
+        res = np.zeros((h + abs(dy) + 4, w + extra + 2, 4))
+        res[:h, :w] = cut
+        for xx in range(extra):
+            for y in range(h):
+                sy = y + dy
+                if 0 <= sy < H:
+                    res[y, w + xx] = don[sy, x0 + STRIP + xx]
+        for b in range(6):
+            ox, sx, t = w - 6 + b, x0 + STRIP - 6 + b, (b + 1) / 7
+            for y in range(h):
+                sy = y + dy
+                if 0 <= sy < H and cut[y, ox, 3] > 0 and don[sy, sx, 3] > 0:
+                    res[y, ox, :3] = cut[y, ox, :3] * (1 - t) + don[sy, sx, :3] * t
+        im = Image.fromarray(res.astype(np.uint8), "RGBA")
+        out.append(im.crop(im.getchannel("A").getbbox()))
+    return out
+
+
+def horse_meta(img):
+    """Caja del caballo + jinete (zona oscura/saturada sin polvo) para alinear cuadros."""
+    a = np.asarray(img).astype(int)
+    lum = a[..., 0] * 0.3 + a[..., 1] * 0.59 + a[..., 2] * 0.11
+    solid = (a[..., 3] > 128) & (lum < 175)
+    solid = ndimage.binary_closing(solid, iterations=3)
+    lab, n = ndimage.label(solid)
+    sizes = ndimage.sum(solid, lab, range(1, n + 1))
+    big = lab == (int(np.argmax(sizes)) + 1)
+    ys, xs = np.nonzero(big)
+    return {"x0": int(xs.min()), "x1": int(xs.max()), "y0": int(ys.min()), "y1": int(ys.max()),
+            "w": img.width, "h": img.height}
 
 
 if __name__ == "__main__":

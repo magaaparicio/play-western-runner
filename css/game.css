@@ -1,10 +1,10 @@
 /* WESTERN RUNNER · Interfaz */
 :root {
-  --ink: #3B2314;
+  --ink: #2A1B14;
   --wood: #8A4F27; --wood-dark: #5E3319; --wood-light: #A8693A;
   --plank: #4A2A17; --plank-light: #6A3E22;
-  --cream: #FBE7C2; --gold: #FFD35C; --gold-deep: #F0962E;
-  --red: #D6322A; --parch: #F3E1BC; --parch-dark: #DCC08C;
+  --cream: #F6E9D0; --gold: #F2B53C; --gold-deep: #D2641F;
+  --red: #B8261C; --parch: #F3E1BC; --parch-dark: #DCC08C;
   --display: "Rye", "Rockwell Extra Bold", "Rockwell", Georgia, serif;
   --ui: "Zilla Slab", "Rockwell", Georgia, serif;
   --safe-t: env(safe-area-inset-top, 0px);
@@ -13,7 +13,7 @@
   --safe-r: env(safe-area-inset-right, 0px);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: #C9662F; overscroll-behavior: none; }
+html, body { height: 100%; overflow: hidden; background: #C4552F; overscroll-behavior: none; }
 body {
   font-family: var(--ui); color: var(--cream);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -289,42 +289,10 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   .banner.is-on { animation: none; opacity: 1; transform: translate(-50%, -50%); }
 }
 
-/* ---------- Modo ilustrado: piezas del atlas ---------- */
+/* ---------- Ilustraciones dentro de la interfaz ---------- */
 #app[data-loading] > * { visibility: hidden; }
-.logo-img { display: none; }
-.has-art .logo-img { display: block; width: min(100%, 560px); height: auto; filter: drop-shadow(0 10px 14px rgba(60,25,5,.45)); }
-.has-art .title-sign { display: none; }
-.has-art .wood-btn {
-  background: none; box-shadow: none; border-style: solid; border-radius: 0;
-  border-width: clamp(12px, 1.4vmin + 6px, 20px) clamp(16px, 1.8vmin + 8px, 26px);
-  border-image: url(../assets/ui-button.png) 24 30 fill stretch;
-  filter: drop-shadow(0 6px 6px rgba(60,25,5,.35));
-  padding: .25em .6em;
-}
-.has-art .wood-btn::before, .has-art .wood-btn::after { display: none; }
-.has-art .wood-btn:active { transform: translateY(3px) scale(.98); box-shadow: none; }
-.has-art .wood-btn--big { padding: .12em .5em; }
-.has-art .plank {
-  background: url(../assets/ui-score.png) center / 100% 100% no-repeat; border: 0; box-shadow: none;
-  border-radius: 0; filter: drop-shadow(0 3px 4px rgba(40,15,0,.35)); padding: .4em 1em;
-}
-.has-art .timer { background-image: url(../assets/ui-timer.png); padding-left: 2.1em; padding-right: .9em; }
-.has-art .timer svg { display: none; }
-.has-art #btn-pause, .has-art .sound-btn { width: 2.1em; height: 2.1em; }
-.has-art #btn-pause { background-image: url(../assets/ui-pause.png); }
-.has-art #btn-pause svg { display: none; }
-.has-art .sound-btn { background-image: url(../assets/ui-button.png); color: var(--cream); }
-.heart-img { display: block; width: clamp(30px, 2.8vmin + 18px, 46px); height: auto; }
-.heart-img.is-lost { filter: grayscale(1) brightness(.45) drop-shadow(0 2px 0 rgba(59,35,20,.6)); }
-.has-art .parchment {
-  background: none; outline: 0; box-shadow: none; border-radius: 0;
-  border-style: solid; border-width: 26px 46px; border-image: url(../assets/ui-parchment.png) 26 46 fill stretch;
-  filter: drop-shadow(0 14px 20px rgba(40,15,0,.45));
-  padding: clamp(6px, 1.4vmin, 16px) clamp(4px, 1.6vmin, 18px);
-}
-.has-art .how-art img { display: block; margin: 0 2px; }
+.has-art .how-art img { display: block; margin: 0 2px; filter: drop-shadow(0 4px 4px rgba(40,15,0,.3)); }
 .has-art .mult-hat img { display: block; }
-.has-art .icon-btn { padding: 0; }
 
 /* Racha, etiqueta de modo y salto de una mano */
 .streak {
@@ -351,7 +319,6 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
   .screen-menu { padding-top: calc(8px + var(--safe-t)); padding-bottom: calc(8px + var(--safe-b)); padding-right: calc(76px + var(--safe-r)); }
   .menu-col { gap: 6px; width: min(48vw, 420px); }
-  .has-art .logo-img { width: min(100%, 270px); }
   .menu-actions { gap: 6px; width: min(86%, 340px); }
   .has-art .wood-btn { border-width: 9px 14px; }
   .wood-btn--big { font-size: 22px; }
@@ -360,3 +327,26 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   .record b { font-size: 20px; }
   .record small, .record-sub { font-size: 11px; }
 }
+
+/* ---------- Tema nuevo: paleta de la lámina (rojo, naranja, mostaza, azul, café) ---------- */
+.wood-btn--big {
+  background:
+    repeating-linear-gradient(178deg, rgba(0,0,0,0) 0 7px, rgba(0,0,0,.07) 7px 9px),
+    linear-gradient(#D9532A, #B8261C 58%, #94190F);
+  box-shadow: inset 0 2px 0 rgba(255,214,170,.45), inset 0 -4px 0 rgba(0,0,0,.28), 0 5px 0 var(--ink), 0 9px 16px rgba(60,25,5,.38);
+}
+.wood-btn--small {
+  background:
+    repeating-linear-gradient(178deg, rgba(0,0,0,0) 0 7px, rgba(0,0,0,.07) 7px 9px),
+    linear-gradient(#8A4F2A, #6C3A1D 58%, #54290F);
+}
+.title-sign {
+  background:
+    repeating-linear-gradient(177deg, rgba(0,0,0,0) 0 10px, rgba(0,0,0,.08) 10px 13px),
+    linear-gradient(#6C3A1D, #44220F);
+  border-color: var(--ink);
+}
+.title-sign span { background: linear-gradient(#FBE9B4 8%, #F2B53C 50%, #D2641F 92%); -webkit-background-clip: text; background-clip: text; }
+.plank { background: repeating-linear-gradient(178deg, rgba(0,0,0,0) 0 6px, rgba(0,0,0,.08) 6px 8px), linear-gradient(#6C3A1D, #44220F); }
+.parchment { background: radial-gradient(ellipse at center, #F7EBD2 55%, #E6CDA0 100%); border-color: #6C3A1D; }
+.heart { width: clamp(26px, 2.6vmin + 16px, 42px); height: auto; filter: drop-shadow(0 2px 0 rgba(42,27,20,.55)); }

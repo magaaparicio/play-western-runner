@@ -77,7 +77,7 @@ En móvil, el jugador elige en la pausa o en Cómo jugar si salta con un toque (
 - **Vidas:** tres. Cada choque resta una sola vida y da 1.5 segundos de invulnerabilidad.
 - **Fin de partida:** a los 60 segundos o al perder la tercera vida.
 
-**Modo sin fin.** Desde el menú (SIN FIN) se juega sin límite de tiempo hasta perder las tres vidas. El reloj cuenta hacia arriba. Pasados los 60 s la velocidad sigue subiendo de forma continua y se acerca a un tope (`speed.endlessMax`, 690). A los 90 s empieza la fase Leyenda («¡LEYENDA DEL OESTE!»), con menos margen de reacción. Tiene su propio récord, que el menú muestra debajo del de 60 s.
+**El juego es siempre sin fin.** El botón JUGAR inicia la partida sin límite de tiempo (los botones SIN FIN y RETO DEL DÍA se quitaron del menú; la lógica de la partida de 60 s y del reto sigue en el código y en las pruebas). Se juega sin límite de tiempo hasta perder las tres vidas. El reloj cuenta hacia arriba. Pasados los 60 s la velocidad sigue subiendo de forma continua y se acerca a un tope (`speed.endlessMax`, 690). A los 90 s empieza la fase Leyenda («¡LEYENDA DEL OESTE!»), con menos margen de reacción. Tiene su propio récord, que el menú muestra debajo del de 60 s.
 
 **Racha.** Atrapar cartas seguidas, sin dejar pasar ninguna ni chocar, forma una racha visible en el HUD desde la tercera carta. Cada 10 cartas seguidas se suma un bono de 50 puntos; el valor de cada carta (10, o 20 con x2) no cambia.
 
@@ -121,16 +121,16 @@ Si cambias la física o la velocidad, vuelve a correr `node tests/logic.test.js`
 
 ## Arte
 
-Las ilustraciones vienen de `art/atlas.png`. `python3 tools/extract_atlas.py art/atlas.png` las recorta en `assets/`, elimina el cuadriculado de transparencia que venía pintado en la imagen, calcula el punto de apoyo de cada cuadro del caballo y genera `js/assets.js`. Si el atlas cambia de distribución, se ajustan las coordenadas de `BOXES` en ese script.
+Los personajes, obstáculos y coleccionables vienen de `art/atlas.png` (lámina con transparencia real). `python3 tools/extract_atlas.py art/atlas.png --upscale` separa cada pieza por transparencia, la entrega al doble de resolución (Lanczos + nitidez suave), calcula el punto de apoyo del caballo y genera `js/assets.js`. Si la lámina cambia de distribución, se ajustan `ROWS` y los nombres en ese script.
 
-Los 9 cuadros del galope se reproducen en el orden que forma el ciclo más fluido, calculado comparando la pose de las patas entre cuadros (`RUN_ORDER` en `js/render.js`). Si alguna imagen no carga, el juego usa automáticamente el arte vectorial de respaldo.
+Los 11 cuadros del galope se reproducen en el orden que forma el ciclo más fluido, calculado comparando la pose de las patas (`RUN_ORDER` en `js/render.js`). El escenario (cielo, mesas, desierto, suelo) y la interfaz (madera, pergamino, corazones) se dibujan en vectores y CSS, por eso se ven nítidos en cualquier pantalla. Los sprites son raster: se ven limpios hasta cerca de su tamaño real; en pantallas muy grandes o de alta densidad conviene exportar la lámina a mayor resolución.
 
 ## Rendimiento
 
 - **Sprites:** los objetos pequeños se pre-renderizan una vez a la resolución de la pantalla.
 - **Escenario:** usa Path2D en unidades de mundo, nítido a cualquier tamaño sin gastar memoria en imágenes.
 - **Caballo:** se dibuja en vectores cada frame.
-- **Peso:** el build convierte las imágenes a WebP; el juego completo pesa unos 500 KB.
+- **Peso:** el build convierte las imágenes a WebP; el juego completo pesa poco más de 1 MB.
 - **Dispositivos lentos:** si se detectan frames lentos de forma sostenida, el juego reduce partículas, brillos y resolución.
 
 ## Pruebas

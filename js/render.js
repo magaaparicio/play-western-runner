@@ -54,11 +54,12 @@
   };
 
   /* ---------- Modo ilustrado (imágenes del atlas) ---------- */
-  var RUN_UPX = 1.3;            // unidades de mundo por píxel en los cuadros de galope
-  var SPECIAL_UPX = 1.3 * 0.68; // salto, aterrizaje y daño vienen dibujados más grandes
-  var RUN_FRAMES = 9;
+  var ASC = (WR.ASSET_SCALE || 1);
+  var RUN_UPX = 0.52;           // unidades de mundo por píxel de los cuadros de galope (vienen a 400 px)
+  var SPECIAL_UPX = 1.08 / ASC; // salto, aterrizaje y daño comparten la misma escala
+  var RUN_FRAMES = 8;
   // Orden de cuadros que forma el ciclo más fluido (calculado comparando la pose de las patas).
-  var RUN_ORDER = [0, 3, 5, 7, 8, 1, 6, 4, 2];
+  var RUN_ORDER = [0, 1, 2, 3, 4, 5, 6, 7];
 
   function avgRow(im, row) {
     var c = d.createElement('canvas'); c.width = im.width; c.height = 1;
@@ -184,7 +185,8 @@
     this.time += dt;
     this.scarf += dt;
     var speed = world.speed;
-    if (!world.horse.air) this.gallop = (this.gallop + dt * speed / 150) % 1;
+    // Zancadas por segundo: suben poco con la velocidad (a más de ~3.2 los cuadros se saltan y se ve torpe)
+    if (!world.horse.air) this.gallop = (this.gallop + dt * clamp(2.4 + (speed - 300) / 270 * 0.8, 2.2, 3.4)) % 1;
     this.hurt = Math.max(0, this.hurt - dt * 1.6);
     this.shake = Math.max(0, this.shake - dt);
     this.horseScale += (this.horseScaleTarget - this.horseScale) * (1 - Math.exp(-dt * 6));
@@ -237,8 +239,8 @@
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    if (this.img) this._bgImg(world.dist);
-    else WR.drawBackground(ctx, this.L, v, world.dist, this.time, this.low);
+    // Escenario siempre vectorial: nítido a cualquier tamaño de pantalla
+    WR.drawBackground(ctx, this.L, v, world.dist, this.time, this.low);
 
     var dist = world.dist, maxX = v.W + 120;
     // Obstáculos
@@ -269,7 +271,7 @@
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.sin(this.time * 2 + c.bob) * 0.18);
       if (this.img) {
         if (glow) ctx.drawImage(this.cardGlow, -42, -46, 84, 92);
-        ctx.drawImage(this.img['card-' + c.suit], -20, -26, 40, 52);
+        ctx.drawImage(this.img['card-' + c.suit], -20, -28, 40, 56);
       } else {
         var cs = glow ? sp.cardsGlow[c.suit] : sp.cards[c.suit];
         ctx.drawImage(cs.c, -cs.ox, -cs.oy, cs.w, cs.h);
@@ -288,7 +290,7 @@
       ctx.save(); ctx.translate(hx, hy); ctx.rotate(this.time * 0.8); ctx.scale(pulse, pulse);
       ctx.globalAlpha = 0.9; ctx.drawImage(g.c, -g.ox, -g.oy, g.w, g.h);
       ctx.restore();
-      if (this.img) ctx.drawImage(this.img.hat, hx - 37, hy - 30, 74, 58);
+      if (this.img) ctx.drawImage(this.img.hat, hx - 38, hy - 26, 76, 52);
       else ctx.drawImage(sp.hat.c, hx - sp.hat.ox, hy - sp.hat.oy, sp.hat.w, sp.hat.h);
     }
 
@@ -309,7 +311,7 @@
     // Efectos
     for (i = 0; i < this.fx.length; i++) this._drawFx(this.fx[i], world);
 
-    if (!this.img) WR.drawForeground(ctx, this.L, v, dist);
+    WR.drawForeground(ctx, this.L, v, dist);
   };
 
   Renderer.prototype._drawHorse = function (world, opts) {
@@ -348,7 +350,7 @@
       var s = this.sprites.cards[f.suit], sc = 1 + (1 - a) * 0.8;
       ctx.globalAlpha = a;
       ctx.save(); ctx.translate(f.x, f.y - (1 - a) * 18); ctx.scale(sc, sc);
-      if (this.img) ctx.drawImage(this.img['card-' + f.suit], -20, -26, 40, 52);
+      if (this.img) ctx.drawImage(this.img['card-' + f.suit], -20, -28, 40, 56);
       else ctx.drawImage(s.c, -s.ox, -s.oy, s.w, s.h);
       ctx.restore();
     } else if (f.k === 'flash') {

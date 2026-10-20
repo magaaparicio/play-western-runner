@@ -75,9 +75,9 @@ def run():
         pg.tap("#btn-pause")
         pg.wait_for_timeout(100)
         check("móvil: el botón de pausa pausa", pg.evaluate("WR.app.mode()") == "pause")
-        t0 = pg.evaluate(f"{W}.timeLeft")
+        t0 = pg.evaluate(f"{W}.t")
         pg.wait_for_timeout(900)
-        check("pausa: el temporizador se detiene", pg.evaluate(f"{W}.timeLeft") == t0)
+        check("pausa: el temporizador se detiene", pg.evaluate(f"{W}.t") == t0)
         pg.tap("#btn-resume")
         pg.wait_for_timeout(60)
         pg.tap("#btn-pause")
@@ -133,30 +133,37 @@ def run():
         check("escritorio: con x2 la carta suma 20", 20 in pts and all(v == 20 for v in pts), str(pts))
         check("escritorio: el HUD muestra el puntaje del mundo", pg.inner_text("#score").replace(",", "") == str(pg.evaluate(f"{W}.score")))
 
-        # Juega con el piloto hasta el final y guarda récord
-        pg.evaluate("() => { WR._ap = setInterval(() => WR.app.world().autopilot(), 8); }")
-        pg.wait_for_function("WR.app.mode() === 'over'", timeout=70000)
+        # El juego es siempre sin fin: el menú solo ofrece JUGAR y CÓMO JUGAR
+        check("escritorio: el menú ya no ofrece modos extra", pg.locator("#btn-daily").count() == 0 and pg.locator("#btn-endless").count() == 0)
+        check("escritorio: el reloj cuenta hacia arriba", pg.inner_text("#time") in ("0:00", "0:01", "0:02", "0:03", "0:04", "0:05", "0:06", "0:07", "0:08", "0:09", "0:10", "0:11", "0:12"), pg.inner_text("#time"))
+        wait_ground(pg)
+        pg.evaluate(f"() => {{ const w = {W}; w.t = 75; }}")
+        pg.wait_for_timeout(400)
+        check("escritorio: no termina a los 60 s", pg.evaluate("WR.app.mode()") == "play")
+
+        # Perder las tres vidas y guardar récord
+        pg.evaluate(f"""() => {{ const w = {W}; w.lives = 1; w.invuln = 0;
+            w.obstacles.push({{type: 'barrel', x: w.horseAbsX() + 40, w: 48, h: 60, box: [5, 3, 5], hit: false}}); }}""")
+        pg.wait_for_function("WR.app.mode() === 'over'", timeout=3000)
         pg.wait_for_timeout(900)
         score = pg.evaluate(f"{W}.score")
-        check("escritorio: la partida termina a los 60 s", pg.evaluate(f"{W}.reason") == "time" and pg.is_visible("#screen-over"))
+        check("escritorio: sin vidas termina la partida", pg.evaluate(f"{W}.reason") == "lives" and pg.is_visible("#screen-over"))
         check("escritorio: muestra ¡FIN DEL RECORRIDO! y ¡NUEVO RÉCORD!", pg.is_visible("#new-record") and "RECORRIDO" in pg.inner_text(".board--over .board-title"))
-        saved = pg.evaluate("JSON.parse(localStorage.getItem(WR_CONFIG.storageKey)).best")
-        check("escritorio: el récord se guarda en localStorage", saved == score, f"{saved} vs {score}")
-        pg.evaluate("clearInterval(WR._ap)")
+        saved = pg.evaluate("JSON.parse(localStorage.getItem(WR_CONFIG.storageKey)).bestEndless")
+        check("escritorio: el récord se guarda en localStorage", saved == score and score > 0, f"{saved} vs {score}")
+        check("escritorio: el final indica el tiempo aguantado", "Aguantaste" in pg.inner_text("#over-reason"))
+        check("escritorio: botón para compartir visible", pg.is_visible("#btn-share"))
 
         # Volver a jugar: estado limpio
         pg.click("#btn-again")
         pg.wait_for_timeout(150)
-        clean = pg.evaluate(f"({W}.score === 0 && {W}.lives === 3 && {W}.timeLeft > 59 && {W}.mult === 0)")
+        clean = pg.evaluate(f"({W}.score === 0 && {W}.lives === 3 && {W}.t < 2 && {W}.mult === 0)")
         hud = pg.inner_text("#score") == "0" and pg.locator(".heart.is-lost").count() == 0
         check("escritorio: Volver a jugar reinicia todo", clean and hud and pg.evaluate("WR.app.mode()") == "play")
         check("escritorio: el tutorial no se repite", not pg.is_visible("#screen-tutorial"))
-
-        # Perder las tres vidas
         pg.evaluate(f"""() => {{ const w = {W}; w.lives = 1; w.invuln = 0;
             w.obstacles.push({{type: 'barrel', x: w.horseAbsX() + 40, w: 48, h: 60, box: [5, 3, 5], hit: false}}); }}""")
         pg.wait_for_function("WR.app.mode() === 'over'", timeout=3000)
-        check("escritorio: sin vidas termina la partida", pg.evaluate(f"{W}.reason") == "lives")
         pg.wait_for_timeout(800)
         check("escritorio: un puntaje menor no muestra nuevo récord", not pg.is_visible("#new-record"))
 
@@ -165,38 +172,6 @@ def run():
         pg.reload()
         pg.wait_for_timeout(400)
         check("escritorio: el récord aparece en el menú tras recargar", pg.is_visible("#record") and pg.inner_text("#record-value").replace(",", "") == str(score))
-
-        # Reto del día
-        pg.click("#btn-daily")
-        pg.wait_for_timeout(1500)
-        first = pg.evaluate(f"{W}.cards.slice(0, 8).map(o => o.suit + ':' + Math.round(o.x) + ':' + Math.round(o.y)).join()")
-        pg.keyboard.press("p"); pg.click("#btn-pause-menu"); pg.click("#btn-daily"); pg.wait_for_timeout(1500)
-        second = pg.evaluate(f"{W}.cards.slice(0, 8).map(o => o.suit + ':' + Math.round(o.x) + ':' + Math.round(o.y)).join()")
-        check("escritorio: el reto del día repite el mismo recorrido", first == second and len(first) > 0, first + " | " + second)
-        pg.evaluate(f"() => {{ const w = {W}; w.timeLeft = 0.01; w.t = 59.99; }}")
-        pg.wait_for_function("WR.app.mode() === 'over'", timeout=3000)
-        pg.wait_for_timeout(800)
-        check("escritorio: el final indica que fue el reto del día", pg.is_visible("#over-mode"))
-        check("escritorio: botón para compartir visible", pg.is_visible("#btn-share"))
-        pg.click("#btn-over-menu")
-
-        # Modo sin fin
-        pg.click("#btn-endless")
-        pg.wait_for_timeout(1300)
-        check("sin fin: el reloj cuenta hacia arriba", pg.inner_text("#time") in ("0:01", "0:02"), pg.inner_text("#time"))
-        pg.evaluate(f"() => {{ const w = {W}; w.t = 75; }}")
-        pg.wait_for_timeout(400)
-        check("sin fin: no termina a los 60 s", pg.evaluate("WR.app.mode()") == "play")
-        pg.wait_for_function(f"!{W}.horse.air", timeout=3000)
-        pg.evaluate(f"""() => {{ const w = {W}; w.score = 99999; w.lives = 1; w.invuln = 0;
-            w.obstacles.push({{type: 'barrel', x: w.horseAbsX() + 30, w: 63, h: 69, box: [10, 5, 10], hit: false}}); }}""")
-        pg.wait_for_function("WR.app.mode() === 'over'", timeout=3000)
-        pg.wait_for_timeout(800)
-        st = pg.evaluate("JSON.parse(localStorage.getItem(WR_CONFIG.storageKey))")
-        check("sin fin: termina sin vidas y guarda su propio récord", st["bestEndless"] == 99999 and st["best"] == score, str((st["bestEndless"], st["best"])))
-        check("sin fin: el final indica el modo y el tiempo aguantado", "SIN FIN" in pg.inner_text("#over-mode") and "Aguantaste" in pg.inner_text("#over-reason"))
-        pg.click("#btn-over-menu")
-        check("sin fin: el menú muestra su récord aparte", pg.is_visible("#record-endless"))
 
         # Música y sonido
         pg.click("#btn-music-menu")

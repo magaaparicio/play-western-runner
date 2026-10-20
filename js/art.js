@@ -20,7 +20,7 @@
     boot: '#6B3F1D', hat: '#8B5A2B', hatDark: '#6B3F1D', hatBand: '#3E2414',
     scarf: '#D9362B', scarfDark: '#AE2620', blanket: '#C9853F', blanketStripe: '#8F2F22', saddle: '#7B4524',
     card: '#FFF8EC', red: '#D6322A', black: '#2B1E17',
-    cactus: '#5DA33E', cactusShade: '#47862F', cactusLight: '#7CC052'
+    cactus: '#4E8040', cactusShade: '#3B6633', cactusLight: '#6B9A4C'
   };
   WR.COLORS = C;
 
@@ -640,29 +640,29 @@
     var W = view.W, gy = view.groundY;
     // Cielo
     var sky = ctx.createLinearGradient(0, 0, 0, gy);
-    sky.addColorStop(0, '#3D97DD'); sky.addColorStop(0.55, '#7EC4EE'); sky.addColorStop(0.86, '#CFE6EE'); sky.addColorStop(1, '#F7D9A3');
+    sky.addColorStop(0, '#5FA6D0'); sky.addColorStop(0.5, '#8FC3DD'); sky.addColorStop(0.84, '#D8E6E0'); sky.addColorStop(1, '#F7DFB0');
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, gy + 2);
 
     // Sol
     var sx = W * 0.86, sy = Math.min(gy * 0.2, 110);
     var sg = ctx.createRadialGradient(sx, sy, 20, sx, sy, 90);
-    sg.addColorStop(0, 'rgba(255,240,170,.85)'); sg.addColorStop(1, 'rgba(255,240,170,0)');
+    sg.addColorStop(0, 'rgba(255,238,196,.9)'); sg.addColorStop(1, 'rgba(255,238,196,0)');
     ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 90, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#FFD35C'; ctx.beginPath(); ctx.arc(sx, sy, 34, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#F8E9BE'; ctx.beginPath(); ctx.arc(sx, sy, 34, 0, TAU); ctx.fill();
 
     // Nubes
     if (!low) {
       ctx.save(); ctx.translate(0, Math.max(60, gy * 0.18));
       tiled(ctx, L.clouds.tile, scroll * 0.04 + time * 8, W, function () {
-        ctx.fillStyle = '#CFE3F2'; ctx.fill(L.clouds.shade);
-        ctx.fillStyle = '#FFFFFF'; ctx.fill(L.clouds.path);
+        ctx.fillStyle = '#E7D6B8'; ctx.fill(L.clouds.shade);
+        ctx.fillStyle = '#FFF5E3'; ctx.fill(L.clouds.path);
       });
       ctx.restore();
     }
 
     // Mesetas lejanas
     ctx.save(); ctx.translate(0, gy - 26);
-    tiled(ctx, L.far.tile, scroll * 0.08, W, function () { ctx.fillStyle = '#E8A57C'; ctx.fill(L.far.path); });
+    tiled(ctx, L.far.tile, scroll * 0.08, W, function () { ctx.fillStyle = '#D9907A'; ctx.fill(L.far.path); });
     ctx.restore();
     // bruma
     var haze = ctx.createLinearGradient(0, gy - 140, 0, gy);
@@ -674,18 +674,18 @@
     tiled(ctx, L.mid.tile, scroll * 0.2, W, function () {
       ctx.lineJoin = 'round'; ctx.lineWidth = 2.4; ctx.strokeStyle = 'rgba(59,35,20,.45)';
       ctx.stroke(L.mid.path);
-      ctx.fillStyle = '#D16A3C'; ctx.fill(L.mid.path);
-      ctx.fillStyle = '#AE4C2B'; ctx.fill(L.mid.shade);
-      ctx.fillStyle = '#E98A53'; ctx.fill(L.mid.light);
+      ctx.fillStyle = '#C4552F'; ctx.fill(L.mid.path);
+      ctx.fillStyle = '#9A3A21'; ctx.fill(L.mid.shade);
+      ctx.fillStyle = '#E27A4A'; ctx.fill(L.mid.light);
     });
     ctx.restore();
 
     // Colinas cercanas con cactus
     ctx.save(); ctx.translate(0, gy);
     tiled(ctx, L.near.tile, scroll * 0.45, W, function () {
-      ctx.fillStyle = '#E39147'; ctx.fill(L.near.hills);
+      ctx.fillStyle = '#E2A24B'; ctx.fill(L.near.hills);
       ctx.lineWidth = 3.6; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
-      ctx.stroke(L.near.rocks); ctx.fillStyle = '#B9673E'; ctx.fill(L.near.rocks);
+      ctx.stroke(L.near.rocks); ctx.fillStyle = '#A55A36'; ctx.fill(L.near.rocks);
       ctx.stroke(L.near.cacti); ctx.fillStyle = C.cactus; ctx.fill(L.near.cacti);
       ctx.fillStyle = C.cactusShade; ctx.fill(L.near.cactShade);
     });
@@ -693,21 +693,21 @@
 
     // Suelo
     var gr = ctx.createLinearGradient(0, gy, 0, view.H);
-    gr.addColorStop(0, '#EDAE63'); gr.addColorStop(0.35, '#E29E55'); gr.addColorStop(1, '#C97B3A');
+    gr.addColorStop(0, '#E9B25C'); gr.addColorStop(0.35, '#DD9A44'); gr.addColorStop(1, '#BF702C');
     ctx.fillStyle = gr; ctx.fillRect(0, gy, W, view.H - gy);
     ctx.fillStyle = 'rgba(59,35,20,.22)'; ctx.fillRect(0, gy, W, 3);
     ctx.save(); ctx.translate(0, gy);
     tiled(ctx, L.ground.tile, scroll, W, function () {
       ctx.fillStyle = 'rgba(150,85,40,.55)'; ctx.fill(L.ground.pebbles);
       ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(120,64,30,.5)'; ctx.stroke(L.ground.cracks);
-      ctx.fillStyle = '#8FA545'; ctx.fill(L.ground.tufts);
+      ctx.fillStyle = '#76893A'; ctx.fill(L.ground.tufts);
     });
     ctx.restore();
   };
 
   WR.drawForeground = function (ctx, L, view, scroll) {
     ctx.save(); ctx.translate(0, view.H + 2);
-    tiled(ctx, L.fg.tile, scroll * 1.25, view.W, function () { ctx.fillStyle = '#6E8E33'; ctx.fill(L.fg.path); });
+    tiled(ctx, L.fg.tile, scroll * 1.25, view.W, function () { ctx.fillStyle = '#56742C'; ctx.fill(L.fg.path); });
     ctx.restore();
   };
 })(window, document);

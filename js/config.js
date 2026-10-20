@@ -57,11 +57,11 @@ window.WR_CONFIG = {
   /* Obstáculos: w×h visibles; box = márgenes de colisión [izq, arriba, der] para
      que el impacto coincida con la forma dibujada. minPhase = fase desde la que aparece. */
   obstacles: {
-    barrel: { w: 63,  h: 69, box: [10, 5, 10], minPhase: 0, combo: true },
-    crate:  { w: 80,  h: 66, box: [7, 4, 7],   minPhase: 0, combo: true },
-    rock:   { w: 85,  h: 59, box: [14, 9, 14], minPhase: 0, combo: true },
-    fence:  { w: 89,  h: 64, box: [10, 6, 10], minPhase: 0, combo: false },
-    hay:    { w: 103, h: 62, box: [9, 6, 9],   minPhase: 1, combo: false }
+    barrel: { w: 64,  h: 65, box: [10, 5, 10], minPhase: 0, combo: true },
+    crate:  { w: 67,  h: 66, box: [7, 4, 7],   minPhase: 0, combo: true },
+    rock:   { w: 85,  h: 49, box: [14, 9, 14], minPhase: 0, combo: true },
+    fence:  { w: 89,  h: 54, box: [10, 6, 10], minPhase: 0, combo: false },
+    hay:    { w: 103, h: 65, box: [9, 6, 9],   minPhase: 1, combo: false }
   },
 
   input: {
