@@ -21,6 +21,12 @@
   var world = new WR.World(cfg, { viewW: renderer.view.W, horseX: renderer.horseX });
   world.spawnIdle = true;
 
+  var menuVideo = $('menu-video');
+  if (menuVideo) {
+    menuVideo.src = encodeURI('Cowboy_and_horse_galloping_anima…_20261021103752.mp4');
+    menuVideo.addEventListener('loadeddata', function () { app.classList.add('video-ready'); });
+    menuVideo.addEventListener('error', function () { app.classList.remove('video-ready'); });
+  }
   var mode = 'menu', acc = 0, last = 0, lastSec = -1, bannerTimer = 0, overTimer = 0;
   var fmtNum = function (n) { return Math.round(n).toLocaleString('es-MX'); };
   var fmtTime = function (s) { s = Math.ceil(s); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
@@ -127,7 +133,11 @@
   function show(name) {
     SCREENS.forEach(function (n) { $('screen-' + n).hidden = n !== name; });
     $('hud').hidden = !(name === 'play' || name === 'pause' || name === 'tutorial' || name === 'over');
-    app.className = 'is-' + name;
+    app.className = 'is-' + name + (menuVideo && menuVideo.readyState >= 2 ? ' video-ready' : '');
+    if (menuVideo) {
+      if (name === 'menu') { menuVideo.play().catch(function () {}); }
+      else menuVideo.pause();
+    }
     var hero = name === 'menu' || name === 'how';
     renderer.horseScaleTarget = hero ? (renderer.view.portrait ? 1.35 : 1.75) : 1;
     renderer.heroX = hero ? renderer.view.W * (renderer.view.portrait ? 0.42 : 0.24) : null;
