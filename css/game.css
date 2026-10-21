@@ -354,3 +354,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 /* Video de portada: limitado a la izquierda para mantener el menú libre. */
 .menu-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; z-index:1; pointer-events:none; opacity:0; visibility:hidden; -webkit-mask-image:linear-gradient(to right,#000 0%,#000 37%,transparent 54%); mask-image:linear-gradient(to right,#000 0%,#000 37%,transparent 54%); }
 #app.is-menu.video-ready .menu-video { opacity:1; visibility:visible; }
+
+/* Portada unificada: video a pantalla completa, controles encima. */
+#app.is-menu.video-ready #scene { visibility:hidden; }
+#app.is-menu.video-ready .menu-video { -webkit-mask-image:none; mask-image:none; object-fit:cover; object-position:center center; }
+#app.is-menu .screen-menu { z-index:5; }
