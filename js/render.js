@@ -306,7 +306,7 @@
     }
 
     // Caballo y jinete
-    this._drawHorse(world, opts);
+    if (!(document.getElementById('app').classList.contains('is-menu') && document.getElementById('app').classList.contains('video-ready'))) this._drawHorse(world, opts);
 
     // Efectos
     for (i = 0; i < this.fx.length; i++) this._drawFx(this.fx[i], world);
