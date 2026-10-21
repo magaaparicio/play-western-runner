@@ -359,3 +359,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 #app.is-menu.video-ready #scene { visibility:hidden; }
 #app.is-menu.video-ready .menu-video { -webkit-mask-image:none; mask-image:none; object-fit:cover; object-position:center center; }
 #app.is-menu .screen-menu { z-index:5; }
+
+/* Forzar video único en portada, incluso si el estado de carga cambia. */
+#app.is-menu #scene { visibility:hidden !important; }
+#app.is-menu .menu-video { visibility:visible !important; opacity:1 !important; -webkit-mask-image:none !important; mask-image:none !important; width:100%; height:100%; object-fit:cover; z-index:1; }
