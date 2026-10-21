@@ -198,6 +198,14 @@
         ? [this._pick(this._obstacleTypes(ph, true)), this._pick(this._obstacleTypes(ph, true))]
         : [this._pick(this._obstacleTypes(ph, false))];
       var grp = this._placeGroup(types, s, P);
+      // Variante aérea solo para barriles individuales, a partir de 50 s.
+      var fb = this.cfg.fallingBarrels;
+      if (fb && this.t >= fb.from && kind === 'single' && types[0] === 'barrel' && this.rng() < fb.chance) {
+        var falling = this.obstacles[this.obstacles.length - 1];
+        falling.falling = true;
+        falling.warnAt = Math.max(this.t, this.t + (falling.x - this.horseAbsX()) / s - fb.warningSeconds);
+        falling.landAt = this.t + (falling.x - this.horseAbsX()) / s - fb.landingLeadSeconds;
+      }
       var step = s * (this.T + P.reaction);
       // Nunca más de ~2 s de recorrido sin cartas.
       var starving = grp.center - this.lastCardX > s * 2.4;
@@ -300,7 +308,7 @@
     var hl = X + HORSE_BOX.l, hr = X + HORSE_BOX.r, hb = h.y + HORSE_BOX.b;
     for (i = 0; i < this.obstacles.length; i++) {
       var o = this.obstacles[i];
-      if (o.hit || this.invuln > 0) continue;
+      if (o.hit || this.invuln > 0 || (o.falling && this.t < o.landAt)) continue;
       var ol = o.x + o.box[0], or = o.x + o.w - o.box[2], ot = o.h - o.box[1];
       if (hr > ol && hl < or && hb < ot) {
         o.hit = true;
