@@ -249,8 +249,17 @@
       if (ox > maxX || ox + o.w < -60) continue;
       var spr = sp.obstacles[o.type], oim = this.img && this.img['obs-' + o.type];
       if (oim) spr = { c: oim, w: o.w, h: o.h, ox: 0, oy: o.h - 2 };
-      ctx.fillStyle = 'rgba(80,40,15,.22)';
-      ctx.beginPath(); ctx.ellipse(ox + o.w / 2, gy + 2, o.w * 0.55, 6, 0, 0, TAU); ctx.fill();
+      if (o.falling && world.t < o.warnAt) continue;
+      var fallProgress = o.falling ? Math.max(0, Math.min(1, 1 - (o.landAt - world.t) / Math.max(0.1, o.landAt - o.warnAt))) : 1;
+      ctx.fillStyle = o.falling && fallProgress < 1 ? 'rgba(110,36,10,.38)' : 'rgba(80,40,15,.22)';
+      ctx.beginPath(); ctx.ellipse(ox + o.w / 2, gy + 2, o.w * (o.falling && fallProgress < 1 ? 0.65 : 0.55), o.falling && fallProgress < 1 ? 10 : 6, 0, 0, TAU); ctx.fill();
+      if (o.falling && fallProgress < 1) {
+        // Aviso visible: sombra en suelo y barril descendiendo desde arriba.
+        ctx.save(); ctx.globalAlpha = 0.5 + fallProgress * 0.5;
+        ctx.drawImage(spr.c, ox - spr.ox, gy - spr.oy - (1 - fallProgress) * (gy + o.h + 90), spr.w, spr.h);
+        ctx.restore();
+        continue;
+      }
       if (o.hitAt != null) {
         var t = this.time - o.hitAt, wob = Math.sin(t * 40) * Math.max(0, 0.3 - t) * 0.4;
         ctx.save(); ctx.globalAlpha = Math.max(0.55, 1 - t * 1.4);
