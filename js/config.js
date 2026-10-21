@@ -45,6 +45,8 @@ window.WR_CONFIG = {
     { name: 'Leyenda', speed: 640, from: 90, reaction: 0.3,  gapLoose: [0.95, 1.2], obstacleChance: 0.8, comboChance: 0.32, doubleChance: 0.3, highCardChance: 0.6, message: '¡LEYENDA DEL OESTE!' }
   ],
 
+  fallingBarrels: { from: 50, chance: 0.38, warningSeconds: 1.15, landingLeadSeconds: 0.45 },
+
   /* Racha: cartas seguidas sin dejar pasar ninguna ni chocar. Cada `every` cartas
      seguidas se suma un bono fijo (no altera el valor de 10/20 de cada carta). */
   streak: { every: 10, bonus: 50, showFrom: 3 },
