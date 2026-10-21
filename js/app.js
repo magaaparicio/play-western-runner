@@ -23,7 +23,7 @@
 
   var menuVideo = $('menu-video');
   if (menuVideo) {
-    menuVideo.src = encodeURI('Cowboy_and_horse_galloping_anima…_20261021103752.mp4');
+    menuVideo.src = 'western-runner-menu.mp4';
     menuVideo.addEventListener('loadeddata', function () { app.classList.add('video-ready'); });
     menuVideo.addEventListener('error', function () { app.classList.remove('video-ready'); });
   }
